@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 polars = { version = "0.43.1", features = ["lazy", "csv"] }
+postgres = "0.19.12"

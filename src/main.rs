@@ -1,16 +1,16 @@
 use polars :: prelude ::*;
+mod config;
 
 fn main() {
 
 
-    // Reading the CSV file
-    let df = CsvReadOptions :: default()
-    .try_into_reader_with_file_path(Some("customers.csv".into()))
-    .unwrap()
-    .finish()
-    .unwrap();
+    // // Reading the CSV file
+    // let df = config :: read_csv(
+    //     "customers.csv".to_string()
+    // );
 
-    // //Display the df
+
+    // // //Display the df
     // println!("{}",df.head(Some(4)));
 
     // //Display the columns
@@ -20,6 +20,12 @@ fn main() {
     //println!("{:?}", df.column("Last Name"));
 
     // Select mutiple columns
-    println!("{:?}", df.columns(["First Name", "Last Name"]))
+    //println!("{:?}", df.columns(["First Name", "Last Name"]))
+
+    // Select using select
+    //println!("{:?}",df.select(["Email"]));
+
+    //Fetching data from yellow bricks
+    config :: fetch_yellowbrick_data();
 
 }
