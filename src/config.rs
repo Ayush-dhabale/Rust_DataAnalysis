@@ -32,22 +32,38 @@ pub fn fetch_yellowbrick_data(){
 
     let mut client = Client::connect(&connection_string, NoTls).expect("Connection failed!");
     let result = client.query(query,&[]).unwrap();
-    // Print headers
-    if let Some(first_row) = result.get(0) {
-        let headers: Vec<&str> = first_row.columns().iter().map(|c| c.name()).collect();
-        println!("{:?}", headers); // or format as you like
-    }
 
     for row in &result {
-        let mut row_values = Vec::new();
-        for col_idx in 0..row.len() {
-            let val: Result<String, _> = row.try_get(col_idx);
-            match val {
-                Ok(v) => row_values.push(v),
-                Err(_) => row_values.push(String::from("<unprintable>")),
+        for (col_idx, column) in row.columns().iter().enumerate() {
+            let col_name = column.name();
+
+            // Try known types in Option<T> form
+            if let Ok(Some(v)) = row.try_get::<usize, Option<String>>(col_idx) {
+                println!("{}: {}", col_name, v);
+            } else if let Ok(Some(v)) = row.try_get::<usize, Option<i32>>(col_idx) {
+                println!("{}: {}", col_name, v);
+            } else if let Ok(Some(v)) = row.try_get::<usize, Option<i64>>(col_idx) {
+                println!("{}: {}", col_name, v);
+            } else if let Ok(Some(v)) = row.try_get::<usize, Option<f64>>(col_idx) {
+                println!("{}: {}", col_name, v);
+            } else if let Ok(Some(v)) = row.try_get::<usize, Option<bool>>(col_idx) {
+                println!("{}: {}", col_name, v);
+            } else if let Ok(Some(v)) = row.try_get::<usize, Option<chrono::NaiveDate>>(col_idx) {
+                println!("{}: {}", col_name, v);
+            } else if let Ok(None) = row.try_get::<usize, Option<String>>(col_idx) {
+                println!("{}: Null", col_name);
+            } else if let Ok(None) = row.try_get::<usize, Option<i32>>(col_idx) {
+                println!("{}: Null", col_name);
+            } else if let Ok(None) = row.try_get::<usize, Option<i64>>(col_idx) {
+                println!("{}: Null", col_name);
+            } else if let Ok(None) = row.try_get::<usize, Option<f64>>(col_idx) {
+                println!("{}: Null", col_name);
+            } else if let Ok(None) = row.try_get::<usize, Option<chrono::NaiveDate>>(col_idx) {
+                println!("{}: Null", col_name);
+            } else {
+                println!("{}: <unprintable>", col_name);
             }
         }
-        println!("{:?}", row_values); // or format as you like
+    println!("-----------------------------");
     }
-    //println!("{:?}",temp);
 }
