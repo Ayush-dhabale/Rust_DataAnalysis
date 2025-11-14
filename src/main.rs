@@ -4,10 +4,10 @@ mod config;
 fn main() {
 
 
-    // // Reading the CSV file
-    // let df = config :: read_csv(
-    //     "customers.csv".to_string()
-    // );
+    // Reading the CSV file
+    let df = config :: read_csv(
+        "customers.csv".to_string()
+    );
 
 
     // // //Display the df
@@ -26,6 +26,9 @@ fn main() {
     //println!("{:?}",df.select(["Email"]));
 
     //Fetching data from yellow bricks
-    config :: fetch_yellowbrick_data();
+    let key = config :: concatenate_columns(
+        &df,&["Customer Id","Email","Last Name"]).unwrap();
+
+    println!("The resultant key is: {}",key)
 
 }

@@ -2,6 +2,7 @@ use polars::prelude::*;
 use polars::error::PolarsError;
 use polars::frame::DataFrame;
 use postgres::{Client, NoTls};
+use std::collections::HashSet;
 
 pub fn read_csv(path : String) -> DataFrame{
     let df = CsvReadOptions :: default()
@@ -66,4 +67,35 @@ pub fn fetch_yellowbrick_data(){
         }
     println!("-----------------------------");
     }
+}
+
+pub fn concatenate_columns(df: &DataFrame, columns: &[&str]) -> Result<String, PolarsError> {
+    if columns.is_empty() {
+        return Err(PolarsError::ComputeError("No columns specified".into()));
+    }
+
+    let series_vec: Vec<&Series> = columns.iter().map(|&col| df.column(col)).collect::<Result<_, _>>()?;
+
+    // Ensure all series have the same length
+    let len = series_vec[0].len();
+    if !series_vec.iter().all(|s| s.len() == len) {
+        return Err(PolarsError::ShapeMismatch("Columns have different lengths".into()));
+    }
+    let mut unique_values: HashSet<String> = HashSet::new();
+
+    for i in 0..len {
+        let concatenated = series_vec.iter()
+            .map(|s| s.get(i).map(|v| v.to_string().trim_matches('"').to_string()).unwrap_or_default())
+            .collect::<Vec<String>>()
+            .join("|");
+
+        unique_values.insert(concatenated);
+    }
+
+    let result = format!("({})", unique_values.into_iter()
+        .map(|id| format!("'{}'", id))
+        .collect::<Vec<_>>()
+        .join(", "));
+
+    Ok(result)
 }
