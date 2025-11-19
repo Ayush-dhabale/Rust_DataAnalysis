@@ -3,6 +3,7 @@ use polars::error::PolarsError;
 use polars::frame::DataFrame;
 use postgres::{Client, NoTls};
 use std::collections::HashSet;
+use tokio_postgres::Row;
 
 pub fn read_csv(path : String) -> DataFrame{
     let df = CsvReadOptions :: default()
@@ -98,4 +99,69 @@ pub fn concatenate_columns(df: &DataFrame, columns: &[&str]) -> Result<String, P
         .join(", "));
 
     Ok(result)
+}
+
+pub fn get_dataframe(rows:Vec<Row>,column_names:Vec<&str>)-> anyhow::Result<DataFrame, PolarsError> {
+    let mut columns: Vec<Series> = Vec::new();
+
+    if let Some(first_row) = rows.get(0) {
+        for (i, col_name) in column_names.iter().enumerate() {
+            let col_type = first_row.columns()[i].type_().name();
+            match col_type {
+                "int"|"int4"|"smallint" => {
+                    let series: Vec<i32> = rows.par_iter().map(|row| row.get(i)).collect();
+                    let series = Series::new(col_name, series);
+                    //println!("Adding series: {}",col_name);
+                    columns.push(series);
+                },
+                "bigint"|"int8"|"bigserial" => {
+                    let series: Vec<i64> = rows.par_iter().map(|row| row.get(i)).collect();
+                    let series = Series::new(col_name, series);
+                    //println!("Adding series: {}",col_name);
+                    columns.push(series);
+                },
+                "double precision"|"float8" => {
+                    let series: Vec<f64> = rows.par_iter().map(|row| row.get(i)).collect();
+                    let series = Series::new(col_name, series);
+                    //println!("Adding series: {}",col_name);
+                    columns.push(series);
+                },
+                "real"|"float4" => {
+                    let series: Vec<f64> = rows.par_iter().map(|row| row.get(i)).collect();
+                    let series = Series::new(col_name, series);
+                    //println!("Adding series: {}",col_name); 
+                    columns.push(series);
+                },
+                "varchar"|"text" => {
+                    let series: Vec<&str> = rows.par_iter().map(|row| row.get(i)).collect();
+                    let series = Series::new(col_name, series);
+                    //println!("Adding series: {}",col_name);
+                    columns.push(series);
+                },
+                "int2"|"smallint" => {
+                    // Handle int2/smallint specifically as i16
+                    let series: Vec<i16> = rows.par_iter().map(|row| row.get(i)).collect();
+                    // Convert to i32 if needed
+                    let series = Series::new(col_name, series.iter().map(|&x| x as i32).collect::<Vec<i32>>());
+                    columns.push(series);
+                },
+                // Add more cases as needed
+                _ => {},
+            }
+
+        }
+
+    }
+    let df = DataFrame::new(columns);
+    match df {
+        Ok(a) => {
+            //info!("{:?}","DataFrame Created");
+            return Ok(a)
+        },
+        Err(a) => return {
+            info!("{:?}","Error in creating dataframe");
+            return Ok(DataFrame::empty())
+        }
+    };
+
 }
